@@ -13,12 +13,43 @@ public class Test_Logic : MonoBehaviour
     public int width = 6;
     public int height = 6;
 
+    private float gridSpaceSize = 6f;
+
+    [SerializeField]
+    private GameObject gridCellPrefab;
+
     private bool[,] grid;
+    private GameObject[,] gameGrid;
 
     void Start()
     {
         grid = new bool[width, height];
         Spawn_Piece();
+        CreateGrid();
+    }
+
+    private void CreateGrid()
+    {
+        gameGrid = new GameObject[width, height];
+
+        if (gridCellPrefab == null)
+        {
+            return;
+        }
+
+        for (int x = 0; x < width; x++)
+        {
+            for (int y = 0; y < height; y++)
+            {
+                gameGrid[x,y] = Instantiate(gridCellPrefab, new Vector3(x * gridSpaceSize, 0, y * gridSpaceSize), Quaternion.identity);                
+                
+                //Vector3 spawnPosition = new Vector3(x * gridSpaceSize, 0f, y * gridSpaceSize);
+                //Instantiate(gridCellPrefab, spawnPosition, Quaternion.identity, this.transform);
+                
+                gameGrid[x,y].transform.parent = transform;
+                gameGrid[x,y].gameObject.name = "Grid Space " + x.ToString() + ", " + y.ToString();
+            }
+        }
     }
 
     public void Print_Grid()
@@ -77,145 +108,93 @@ public class Test_Logic : MonoBehaviour
         return cell;
     }
 
+    private bool Is_Valid_Position(PieceShape shape, Vector2Int spawnPos, int rotation, out Vector2Int correction)
+    {
+        correction = Vector2Int.zero;
+
+        foreach (var cell in shape.cells)
+        {
+            Vector2Int rotatedCell = cell; // Add Rotate(cell, rotation) here if you implement rotation
+            Vector2Int finalPos = spawnPos + rotatedCell;
+
+            Vector2Int adjust = Is_Inside_Grid(finalPos); // returns Vector2Int offset if out of bounds
+            if (adjust != Vector2Int.zero)
+            {
+                correction = adjust;
+                return false; // Position invalid
+            }
+
+            if (Is_Occupied(finalPos))
+            {
+                return false; // Position blocked
+            }
+        }
+
+        return true; // All cells valid
+    }
+
+    private Vector2Int Find_Valid_Spawn_Position(PieceShape shape, int rotation, int maxAttempts)
+    {
+        for (int attempt = 0; attempt < maxAttempts; attempt++)
+        {
+            Vector2Int spawnPos = new Vector2Int(
+                Random.Range(0, width),
+                Random.Range(0, height)
+            );
+
+            if (Is_Valid_Position(shape, spawnPos, rotation, out Vector2Int adjustedPos))
+            {
+                return spawnPos; // Valid spawn
+            }
+            else if (adjustedPos != Vector2Int.zero)
+            {
+                // Adjust the spawn position based on feedback from Is_Inside_Grid
+                spawnPos += adjustedPos;
+            }
+        }
+
+        // Could not find a valid spot
+        return Vector2Int.zero;
+    }
+
     public void Spawn_Piece()
     {
-        int rotation = Random.Range(0,4);
-        
+        // Pick random shape and rotation
+        int rotation = Random.Range(0, 4);
         var shapes = PieceDatabase.shapes;
         PieceShape shape = shapes[Random.Range(0, shapes.Length)];
+        Debug.Log("Spawning piece: " + shape.shapeName);
 
-        Debug.Log(shape.shapeName);
-
-        Vector2Int randomSpawnPos = new Vector2Int(
-            Random.Range(0, width),
-            Random.Range(0, height)
-        );
-
-        bool notValid = true;
-        int checkCount = 0;
-        while (notValid && checkCount < 1000)
+        // Try to find a valid spawn position
+        Vector2Int spawnPos = Find_Valid_Spawn_Position(shape, rotation, 1000);
+        if (spawnPos == Vector2Int.zero)
         {
-            int temp = 0;
-            foreach (var cell in shape.cells)
-            {            
-                Vector2Int rotatedPosition = cell;
-                Vector2Int finalPos = randomSpawnPos + rotatedPosition;
-
-                Vector2Int val = Is_Inside_Grid(finalPos);
-                if (val.x != 0 || val.y != 0)
-                {
-                    randomSpawnPos = new Vector2Int(randomSpawnPos.x, randomSpawnPos.y) + val;
-                    break;
-                }
-                else
-                {
-                    temp++;
-                }                
-
-            }
-            if (temp >= 4)
+            spawnPos = new Vector2Int(width/2, height/2);
+            if (Is_Valid_Position(shape, spawnPos, rotation, out Vector2Int adjustedPos))
             {
-                notValid = false;
+                spawnPos += adjustedPos;
+                Debug.Log("Couldn't find a good spot for " + shape.shapeName + " Defaulting spawn... " + spawnPos);
             }
-            checkCount++;
-        }
-        if (checkCount >= 50)
-        {
-            Debug.Log("Couldn't find a good spot");
+                        
+            //return;
         }
 
-        foreach(var cell in shape.cells)
-        {
-            Vector2Int rotatedPosition = cell;
-            Vector2Int finalPos = randomSpawnPos + rotatedPosition;
-            
-            Set_Tile(finalPos, true);
-        }
+        // Place the piece
+        Place_Piece(shape, spawnPos, rotation);
+
+        // Debug print
         Print_Grid();
     }
-}
 
-/*
-public void Spawn_Piece()
-{
-    // Pick random shape and rotation
-    int rotation = Random.Range(0, 4);
-    var shapes = PieceDatabase.shapes;
-    PieceShape shape = shapes[Random.Range(0, shapes.Length)];
-    Debug.Log("Spawning piece: " + shape.shapeName);
-
-    // Try to find a valid spawn position
-    Vector2Int spawnPos = FindValidSpawnPosition(shape, rotation, 1000);
-    if (spawnPos == Vector2Int.zero)
+    private void Place_Piece(PieceShape shape, Vector2Int spawnPos, int rotation)
     {
-        Debug.Log("Couldn't find a good spot for " + shape.shapeName);
-        return;
-    }
-
-    // Place the piece
-    PlacePiece(shape, spawnPos, rotation);
-
-    // Debug print
-    Print_Grid();
-}
-
-private Vector2Int FindValidSpawnPosition(PieceShape shape, int rotation, int maxAttempts)
-{
-    for (int attempt = 0; attempt < maxAttempts; attempt++)
-    {
-        Vector2Int spawnPos = new Vector2Int(
-            Random.Range(0, width),
-            Random.Range(0, height)
-        );
-
-        if (IsValidPosition(shape, spawnPos, rotation, out Vector2Int adjustedPos))
+        foreach (var cell in shape.cells)
         {
-            return spawnPos; // Valid spawn
-        }
-        else if (adjustedPos != Vector2Int.zero)
-        {
-            // Adjust the spawn position based on feedback from Is_Inside_Grid
-            spawnPos += adjustedPos;
+            Vector2Int rotatedCell = cell; // Add Rotate(cell, rotation) here if needed
+            Vector2Int finalPos = spawnPos + rotatedCell;
+
+            Set_Tile(finalPos, true);
         }
     }
 
-    // Could not find a valid spot
-    return Vector2Int.zero;
 }
-
-private bool IsValidPosition(PieceShape shape, Vector2Int spawnPos, int rotation, out Vector2Int correction)
-{
-    correction = Vector2Int.zero;
-
-    foreach (var cell in shape.cells)
-    {
-        Vector2Int rotatedCell = cell; // Add Rotate(cell, rotation) here if you implement rotation
-        Vector2Int finalPos = spawnPos + rotatedCell;
-
-        Vector2Int adjust = Is_Inside_Grid(finalPos); // returns Vector2Int offset if out of bounds
-        if (adjust != Vector2Int.zero)
-        {
-            correction = adjust;
-            return false; // Position invalid
-        }
-
-        if (IsOccupied(finalPos))
-        {
-            return false; // Position blocked
-        }
-    }
-
-    return true; // All cells valid
-}
-
-private void PlacePiece(PieceShape shape, Vector2Int spawnPos, int rotation)
-{
-    foreach (var cell in shape.cells)
-    {
-        Vector2Int rotatedCell = cell; // Add Rotate(cell, rotation) here if needed
-        Vector2Int finalPos = spawnPos + rotatedCell;
-
-        Set_Tile(finalPos, true);
-    }
-}
-*/
