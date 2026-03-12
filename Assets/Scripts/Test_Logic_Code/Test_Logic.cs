@@ -17,6 +17,8 @@ public class Test_Logic : MonoBehaviour
 
     [SerializeField]
     private GameObject gridCellPrefab;
+    [SerializeField]
+    private GameObject gridCellCorrectPrefab;
 
     private bool[,] grid;
     private GameObject[,] gameGrid;
@@ -25,10 +27,11 @@ public class Test_Logic : MonoBehaviour
     {
         grid = new bool[width, height];
         Spawn_Piece();
-        CreateGrid();
+        //Create_Basic_Grid();
+        Generate_Grid();
     }
 
-    private void CreateGrid()
+    private void Create_Basic_Grid()
     {
         gameGrid = new GameObject[width, height];
 
@@ -194,6 +197,24 @@ public class Test_Logic : MonoBehaviour
             Vector2Int finalPos = spawnPos + rotatedCell;
 
             Set_Tile(finalPos, true);
+        }
+    }
+
+    private void Generate_Grid()
+    {
+        for (int y = 0; y < height; y++)
+        {
+            for (int x = 0; x < width; x++)
+            {
+                if (grid[x,y])
+                {
+                    Instantiate(gridCellCorrectPrefab, new Vector3(x * gridSpaceSize, 0, y * gridSpaceSize), Quaternion.identity);
+                }
+                else
+                {
+                    Instantiate(gridCellPrefab, new Vector3(x * gridSpaceSize, 0, y * gridSpaceSize), Quaternion.identity);
+                }
+            }
         }
     }
 
