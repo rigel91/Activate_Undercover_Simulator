@@ -106,19 +106,36 @@ public class Test_Logic : MonoBehaviour
         grid[pos.x, pos.y] = value;
     }
 
-    Vector2Int Rotate(Vector2Int cell, int rotation)
+    private Vector2Int Rotate(Vector2Int cell, int rotation)
     {
-        return cell;
+        rotation = rotation % 4;
+
+        switch (rotation)
+        {
+            case 0: // 0
+                return cell;
+            
+            case 1: // 90
+                return new Vector2Int(cell.y, -cell.x);
+            
+            case 2: //180
+                return new Vector2Int(-cell.x, -cell.y);
+            
+            case 3: // 270
+                return new Vector2Int(-cell.y, cell.x);
+            
+            default:
+                return cell;
+        }
     }
 
-    private bool Is_Valid_Position(PieceShape shape, Vector2Int spawnPos, int rotation, out Vector2Int correction)
+    private bool Is_Valid_Position(PieceShape shape, Vector2Int spawnPos, out Vector2Int correction)
     {
         correction = Vector2Int.zero;
 
         foreach (var cell in shape.cells)
         {
-            Vector2Int rotatedCell = cell; // Add Rotate(cell, rotation) here if you implement rotation
-            Vector2Int finalPos = spawnPos + rotatedCell;
+            Vector2Int finalPos = spawnPos;
 
             Vector2Int adjust = Is_Inside_Grid(finalPos); // returns Vector2Int offset if out of bounds
             if (adjust != Vector2Int.zero)
@@ -136,7 +153,7 @@ public class Test_Logic : MonoBehaviour
         return true; // All cells valid
     }
 
-    private Vector2Int Find_Valid_Spawn_Position(PieceShape shape, int rotation, int maxAttempts)
+    private Vector2Int Find_Valid_Spawn_Position(PieceShape shape, int maxAttempts)
     {
         for (int attempt = 0; attempt < maxAttempts; attempt++)
         {
@@ -145,7 +162,7 @@ public class Test_Logic : MonoBehaviour
                 Random.Range(0, height)
             );
 
-            if (Is_Valid_Position(shape, spawnPos, rotation, out Vector2Int adjustedPos))
+            if (Is_Valid_Position(shape, spawnPos, out Vector2Int adjustedPos))
             {
                 return spawnPos; // Valid spawn
             }
@@ -162,28 +179,40 @@ public class Test_Logic : MonoBehaviour
 
     public void Spawn_Piece()
     {
-        // Pick random shape and rotation
+        // Pick random shape, Piece and rotation
         int rotation = Random.Range(0, 4);
+        Debug.Log(rotation * 90);
         var shapes = PieceDatabase.shapes;
         PieceShape shape = shapes[Random.Range(0, shapes.Length)];
         Debug.Log("Spawning piece: " + shape.shapeName);
 
+        PieceShape newShape = shape.Clone();
+        for(int x = 0; x < shape.cells.Length; x++)
+        {
+            newShape.cells[x] = Rotate(shape.cells[x], rotation);
+        }
+
+        foreach(var cell in newShape.cells)
+        {
+            Debug.Log(cell);
+        }
+
         // Try to find a valid spawn position
-        Vector2Int spawnPos = Find_Valid_Spawn_Position(shape, rotation, 1000);
+        Vector2Int spawnPos = Find_Valid_Spawn_Position(newShape, 100000);
         if (spawnPos == Vector2Int.zero)
         {
             spawnPos = new Vector2Int(width/2, height/2);
-            if (Is_Valid_Position(shape, spawnPos, rotation, out Vector2Int adjustedPos))
+            if (Is_Valid_Position(newShape, spawnPos, out Vector2Int adjustedPos))
             {
                 spawnPos += adjustedPos;
-                Debug.Log("Couldn't find a good spot for " + shape.shapeName + " Defaulting spawn... " + spawnPos);
-            }
-                        
-            //return;
+                Debug.Log("Couldn't find a good spot for " + newShape.shapeName + " Defaulting spawn... " + spawnPos);
+            }                        
         }
 
+        Debug.Log(spawnPos);
+
         // Place the piece
-        Place_Piece(shape, spawnPos, rotation);
+        Place_Piece(newShape, spawnPos, rotation);
 
         // Debug print
         Print_Grid();
@@ -196,6 +225,7 @@ public class Test_Logic : MonoBehaviour
             Vector2Int rotatedCell = cell; // Add Rotate(cell, rotation) here if needed
             Vector2Int finalPos = spawnPos + rotatedCell;
 
+            //print(finalPos);
             Set_Tile(finalPos, true);
         }
     }
