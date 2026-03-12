@@ -186,33 +186,24 @@ public class Test_Logic : MonoBehaviour
         PieceShape shape = shapes[Random.Range(0, shapes.Length)];
         Debug.Log("Spawning piece: " + shape.shapeName);
 
-        PieceShape newShape = shape.Clone();
-        for(int x = 0; x < shape.cells.Length; x++)
-        {
-            newShape.cells[x] = Rotate(shape.cells[x], rotation);
-        }
-
-        foreach(var cell in newShape.cells)
-        {
-            Debug.Log(cell);
-        }
+        
 
         // Try to find a valid spawn position
-        Vector2Int spawnPos = Find_Valid_Spawn_Position(newShape, 100000);
+        Vector2Int spawnPos = Find_Valid_Spawn_Position(shape, 100000);
         if (spawnPos == Vector2Int.zero)
         {
             spawnPos = new Vector2Int(width/2, height/2);
-            if (Is_Valid_Position(newShape, spawnPos, out Vector2Int adjustedPos))
+            if (Is_Valid_Position(shape, spawnPos, out Vector2Int adjustedPos))
             {
                 spawnPos += adjustedPos;
-                Debug.Log("Couldn't find a good spot for " + newShape.shapeName + " Defaulting spawn... " + spawnPos);
+                Debug.Log("Couldn't find a good spot for " + shape.shapeName + " Defaulting spawn... " + spawnPos);
             }                        
         }
 
         Debug.Log(spawnPos);
 
         // Place the piece
-        Place_Piece(newShape, spawnPos, rotation);
+        Place_Piece(shape, spawnPos, rotation);
 
         // Debug print
         Print_Grid();

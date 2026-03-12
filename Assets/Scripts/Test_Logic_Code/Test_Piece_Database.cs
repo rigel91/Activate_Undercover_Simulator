@@ -6,14 +6,14 @@ public static class PieceDatabase
     {
         
         /*
-            Z-piece
+            Right Z-piece
 
             .##
             ##.
         */
         new PieceShape
         {
-            shapeName = "Z-piece",
+            shapeName = " Right Z-piece",
             cells = new Vector2Int[]
             {
                 new Vector2Int(0,0),
@@ -24,7 +24,7 @@ public static class PieceDatabase
         },
 
         /*
-            L-piece
+            Reverse L-piece
 
             ##. 
             #..
@@ -32,7 +32,7 @@ public static class PieceDatabase
         */
         new PieceShape
         {
-            shapeName = "L-piece",
+            shapeName = "Reverse L-piece",
             cells = new Vector2Int[]
             {
                 new Vector2Int(0,0),
