@@ -176,10 +176,60 @@ public class Main_Logic_Test : MonoBehaviour
         }
     }
 
-    // TODO: Check if there exists the same shape since it shouldnt exist; only one shape can exist at a time
+    // TODO: Need to check validPositions as well and see if NoiseTiles are in the shape
     public void GridCheck(PieceShape shape, int rotation)
     {
+        // Loop through each tile
+        foreach(Tile_Data tile in activeGrid)
+        {
+            // If current tile is noise tile check if the current selected shape is in bounds else move on to different tile
+            if (tile.isNoiseTile)
+            {
+                Vector2Int startPos = tile.gridPosition;
+                int totalNoise = 0;
 
+                // Check if current position is out of bounds with current shape
+                foreach (var cell in shape.rotations[rotation])
+                {
+                    Vector2Int finalPos = cell + startPos;
+                    if (finalPos.x < 0 || finalPos.x >= width || finalPos.y < 0 || finalPos.y >= height)
+                    {
+                        // Out of bounds
+                        break;
+                    }
+
+                    // Current position is in bounds, now check if next tile in shape is a NoiseTile
+                    if (activeGrid[finalPos.x, finalPos.y].isNoiseTile || activeGrid[finalPos.x, finalPos.y].validPosition)
+                    {
+                        totalNoise += 1;
+                    }
+                    else
+                    {
+                        break;
+                    }
+
+                    // If all tiles in shape are NoiseTiles or shape looks like active shape from valid position then chane the start position
+                    if (totalNoise == shape.rotations.Count-1)
+                    {
+                        Debug.Log("------------Change current tile--------------: " + startPos.x + ", " + startPos.y);
+                        Tile_Data changeTile = activeGrid[startPos.x, startPos.y];
+                        changeTile.isNoiseTile = false;
+                        changeTile.tileObject = ReplaceBlankTile(changeTile);
+                    }
+                }
+            }
+        }
+    }
+
+    public GameObject ReplaceBlankTile(Tile_Data tile)
+    {
+        Vector2Int tilePos = new Vector2Int(tile.gridPosition.x, tile.gridPosition.y);
+        
+        if (tile.tileObject != null) {
+            Destroy(tile.tileObject);
+        }
+
+        return Instantiate(gridCellPrefab, new Vector3(tilePos.x * gridSpace, 0, tilePos.y * gridSpace), Quaternion.identity);
     }
 
     public void PrintGrid()
