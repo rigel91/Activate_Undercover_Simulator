@@ -24,7 +24,7 @@ public class Main_Logic_Test : MonoBehaviour
     private int height = 6;
     private int gridSpace = 6;
 
-    private bool[,] activeGrid;
+    private Tile_Data[,] activeGrid;
 
     // Prefabs for 3D grid
     [SerializeField]
@@ -81,7 +81,8 @@ public class Main_Logic_Test : MonoBehaviour
                 {
                     Vector2Int finalPos = cell + spawnPos;
 
-                    activeGrid[finalPos.x, finalPos.y] = true;
+                    //activeGrid[finalPos.x, finalPos.y] = true;
+                    activeGrid[finalPos.x, finalPos.y].validPosition = true;
                 }
                 return;
             }            
@@ -101,7 +102,20 @@ public class Main_Logic_Test : MonoBehaviour
     private void GenerateGrid()
     {
         // Generate empty grid
-        activeGrid = new bool[width, height];
+        activeGrid = new Tile_Data[width, height];
+        for (int x = 0; x < width; x++)
+        {
+            for (int y = 0; y < height; y++)
+            {
+                Tile_Data tile = new Tile_Data();
+                tile.gridPosition = new Vector2Int(x,y);
+                tile.validPosition = false;
+                tile.isNoiseTile = false;
+                tile.tileObject = null;
+
+                activeGrid[x,y] = tile;
+            }
+        }
 
         // Generate Shape and its list of rotations
         var shapes = PieceDatabase.shapes;
@@ -121,6 +135,26 @@ public class Main_Logic_Test : MonoBehaviour
         // Generate 3D grid in the scene
         Create3DGrid();
 
+        // Check if there exists a same shape in the grid, if there is then regenerate random noise
+        GridCheck(shape, rotation);
+
+    }
+
+    public void GenerateRandomNoise(Tile_Data tile)
+    {
+        float noiseDensity = 0.35f;
+        float val = Random.value;
+        if (val <= noiseDensity)
+        {
+            // Add Correct Prefab
+            tile.isNoiseTile = true;
+            tile.tileObject = Instantiate(gridCellCorrectPrefab, new Vector3(tile.gridPosition.x * gridSpace, 0, tile.gridPosition.y * gridSpace), Quaternion.identity);
+        }
+        else
+        {
+            // Add blank Prefab
+            tile.tileObject = Instantiate(gridCellPrefab, new Vector3(tile.gridPosition.x * gridSpace, 0, tile.gridPosition.y * gridSpace), Quaternion.identity);
+        }
     }
 
     public void Create3DGrid()
@@ -129,16 +163,23 @@ public class Main_Logic_Test : MonoBehaviour
         {
             for (int y = 0; y < height; y++)
             {
-                if (activeGrid[x,y])
+                if (activeGrid[x,y].validPosition)
                 {
-                    Instantiate(gridCellCorrectPrefab, new Vector3(x * gridSpace, 0, y * gridSpace), Quaternion.identity);
+                    
+                    activeGrid[x,y].tileObject = Instantiate(gridCellCorrectPrefab, new Vector3(x * gridSpace, 0, y * gridSpace), Quaternion.identity);
                 }
                 else
                 {
-                    Instantiate(gridCellPrefab, new Vector3(x * gridSpace, 0, y * gridSpace), Quaternion.identity);
+                    GenerateRandomNoise(activeGrid[x,y]);
                 }
             }
         }
+    }
+
+    // TODO: Check if there exists the same shape since it shouldnt exist; only one shape can exist at a time
+    public void GridCheck(PieceShape shape, int rotation)
+    {
+
     }
 
     public void PrintGrid()
@@ -149,7 +190,7 @@ public class Main_Logic_Test : MonoBehaviour
             string row = "";
             for(int x = 0; x < width; x++)
             {
-                row += activeGrid[x, y] ? "X " : ". ";
+                row += activeGrid[x, y].validPosition ? "X " : ". ";
             }
             Debug.Log(row);
         }
