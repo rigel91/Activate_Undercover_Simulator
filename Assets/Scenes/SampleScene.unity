@@ -452,6 +452,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Main_Logic_Test
   gridCellPrefab: {fileID: 1791423601681751, guid: 31e18a2ba0139855eb2068d7d4364295, type: 3}
   gridCellCorrectPrefab: {fileID: 1791423601681751, guid: 50b0eab69dcfe7383a1b9eac7d2cd10a, type: 3}
+  gridCellReplacePrefab: {fileID: 1791423601681751, guid: af61a549af45d82d39c2ea01573305fe, type: 3}
 --- !u!1 &832575517
 GameObject:
   m_ObjectHideFlags: 0
