@@ -32,6 +32,8 @@ public class Main_Logic_Test : MonoBehaviour
     [SerializeField]
     private GameObject gridCellCorrectPrefab;
     [SerializeField]
+    private GameObject gridCellNoisePrefab;
+    [SerializeField]
     private GameObject gridCellReplacePrefab;
 
     // Start is called once before the first execution of Update after the MonoBehaviour is created
@@ -65,7 +67,7 @@ public class Main_Logic_Test : MonoBehaviour
 
     }
 
-    private void PlaceShapeOnGrid(PieceShape shape, int rotation)
+    private void CreateGrid(PieceShape shape, int rotation)
     {
         int maxAttempts = 100;
         for (int attempt = 0; attempt < maxAttempts; attempt++)
@@ -128,38 +130,42 @@ public class Main_Logic_Test : MonoBehaviour
         int rotation = Random.Range(0,4);
         PrintShape(shape, rotation);
 
-        // Place the shape onto the grid in a random spot
-        PlaceShapeOnGrid(shape, rotation);
+        // Place the shape onto the grid in a random spot and random rotation
+        CreateGrid(shape, rotation);
+
+        // Generate noise to the grid
+        GenerateRandomNoiseGrid();
+
+        // Print Grid in console
         PrintGrid();
 
-        // Generate random shapes and noise to the grid
-
         // Generate 3D grid in the scene
-        Create3DGrid();
+        GenerateTilesFromGrid();
 
         // Check if there exists a same shape in the grid, if there is then regenerate random noise
         GridCheck(shape);
 
     }
 
-    public void GenerateRandomNoise(Tile_Data tile)
+    public void GenerateRandomNoiseGrid()
     {
         float noiseDensity = 0.35f;
-        float val = Random.value;
-        if (val <= noiseDensity)
+        
+        for (int x = 0; x < width; x++)
         {
-            // Add Correct Prefab
-            tile.isNoiseTile = true;
-            tile.tileObject = Instantiate(gridCellCorrectPrefab, new Vector3(tile.gridPosition.x * gridSpace, 0, tile.gridPosition.y * gridSpace), Quaternion.identity);
-        }
-        else
-        {
-            // Add blank Prefab
-            tile.tileObject = Instantiate(gridCellPrefab, new Vector3(tile.gridPosition.x * gridSpace, 0, tile.gridPosition.y * gridSpace), Quaternion.identity);
-        }
+            for (int y = 0; y < height; y++)
+            {
+                float val = Random.value;
+                if (val <= noiseDensity)
+                {
+                    // Add random noise to tile                    
+                    activeGrid[x,y].isNoiseTile = true;                    
+                }
+            }
+        }        
     }
 
-    public void Create3DGrid()
+    public void GenerateTilesFromGrid()
     {
         for (int x = 0; x < width; x++)
         {
@@ -167,21 +173,45 @@ public class Main_Logic_Test : MonoBehaviour
             {
                 if (activeGrid[x,y].validPosition)
                 {
-                    
-                    activeGrid[x,y].tileObject = Instantiate(gridCellCorrectPrefab, new Vector3(x * gridSpace, 0, y * gridSpace), Quaternion.identity);
+                    activeGrid[x,y].tileObject = Instantiate(gridCellCorrectPrefab, new Vector3(activeGrid[x,y].gridPosition.x * gridSpace, 0, activeGrid[x,y].gridPosition.y * gridSpace), Quaternion.identity);
+                    continue;
                 }
-                else
+
+                if (activeGrid[x,y].isNoiseTile)
                 {
-                    GenerateRandomNoise(activeGrid[x,y]);
+                    activeGrid[x,y].tileObject = Instantiate(gridCellNoisePrefab, new Vector3(activeGrid[x,y].gridPosition.x * gridSpace, 0, activeGrid[x,y].gridPosition.y * gridSpace), Quaternion.identity);
+                    continue;
                 }
+
+                if (!activeGrid[x,y].isNoiseTile && !activeGrid[x,y].validPosition)
+                {
+                    activeGrid[x,y].tileObject = Instantiate(gridCellPrefab, new Vector3(activeGrid[x,y].gridPosition.x * gridSpace, 0, activeGrid[x,y].gridPosition.y * gridSpace), Quaternion.identity);
+                    continue;
+                }
+
             }
         }
     }
 
-    // TODO: Need to check validPositions as well and see if NoiseTiles are in the shape
+    // TODO: Rotation has an offset so when checking rotations its not checking at current positions, but checking a different tile with an offset
     public void GridCheck(PieceShape shape)
     {
+        Vector2Int startPos = new Vector2Int(1,1);
+        for (int i = 0; i < shape.rotations.Count; i++)
+        {
+            Debug.Log("Shape " + (i+1));
+            foreach (var cell in shape.rotations[i])
+            {
+                //Debug.Log(cell.x + ", " + cell.y);
+                Vector2Int finalPos = cell + (startPos - shape.rotationOffsets[i]);
+                Debug.Log("(" + finalPos.x + ", " + finalPos.y + ")");
+            }
+        }
 
+        foreach (Tile_Data tile in activeGrid)
+        {
+            break;
+        }
     }
     // public void GridCheck(PieceShape shape)
     // {
@@ -277,7 +307,7 @@ public class Main_Logic_Test : MonoBehaviour
             string row = "";
             for(int x = 0; x < width; x++)
             {
-                row += activeGrid[x, y].validPosition ? "X " : ". ";
+                row += activeGrid[x, y].validPosition ? "X " : activeGrid[x, y].isNoiseTile ? "* " : "- ";
             }
             Debug.Log(row);
         }

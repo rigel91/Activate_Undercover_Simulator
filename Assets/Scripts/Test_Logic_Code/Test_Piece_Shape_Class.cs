@@ -5,6 +5,9 @@ using System.Collections.Generic;
 public class PieceShape
 {
     public string shapeName;
+
+    public List<Vector2Int> rotationOffsets;
+
     public Vector2Int[] cells;
     public List<Vector2Int[]> rotations;
 }
